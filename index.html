@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FloodMetric prototype</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>FloodMetric</h1>
+  <p>Predictive Priority Index for flood-vulnerable infrastructure. Pilot area: Wake County, NC. Sample data only.</p>
+</header>
+
+<div class="layout">
+  <main>
+    <section class="card">
+      <h2>Weights</h2>
+      <div class="slider-row"><label for="w0">Historical failure frequency</label><input type="range" id="w0" min="0" max="100" value="35"><output id="o0">35</output></div>
+      <div class="slider-row"><label for="w1">Structural vulnerability</label><input type="range" id="w1" min="0" max="100" value="25"><output id="o1">25</output></div>
+      <div class="slider-row"><label for="w2">Flood exposure</label><input type="range" id="w2" min="0" max="100" value="25"><output id="o2">25</output></div>
+      <div class="slider-row"><label for="w3">Community observations</label><input type="range" id="w3" min="0" max="100" value="15"><output id="o3">15</output></div>
+      <p class="muted">Weights are rescaled to sum to 100%. PPI ranges from 0 to 100.</p>
+    </section>
+
+    <section class="card">
+      <h2>Priority map</h2>
+      <div id="map" role="region" aria-label="Map of pilot infrastructure sites"></div>
+      <p class="muted">Pins are red at PPI 70 or above, amber from 40 to 69, green below 40.</p>
+    </section>
+
+    <section class="card">
+      <h2>Ranked sites</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Rank</th><th>Site</th><th>Asset class</th><th>PPI</th><th>Failures</th><th>Vulnerability</th><th>Flood events</th><th>311 reports</th></tr></thead>
+          <tbody id="leaderboard"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <aside class="card" id="sidebar">
+    <h2>311 community observations</h2>
+    <label for="incidentFilter" class="filter-label">Filter by Incident Type</label>
+    <select id="incidentFilter"></select>
+    <p class="muted" id="reportCount"></p>
+    <div id="reportList"></div>
+  </aside>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
