@@ -1,4 +1,4 @@
-# FloodMetric 🌊
+# FloodMetric
 **AI-Assisted Infrastructure Vulnerability & Pattern Recognition Dashboard for North Carolina**
 
 FloodMetric is an interactive geospatial decision-support platform designed to help municipal planners, emergency managers, and civil engineers identify recurring infrastructure vulnerabilities across North Carolina. By locking onto critical physical assets—such as bridges, culverts, pumping stations, and wastewater facilities—the dashboard evaluates each site through three distinct analytical lenses.
@@ -7,7 +7,7 @@ FloodMetric is an interactive geospatial decision-support platform designed to h
 Link: https://floodmetricaicc.vercel.app/
 ---
 
-## 🎯 Core Analytical Lenses
+## Core Analytical Lenses
 
 FloodMetric tracks high-risk infrastructure sites across Western North Carolina (Mountain gorges), the Piedmont (urban creeks), and Eastern North Carolina/Outer Banks (river basins and coastal highways) using a three-stage diagnostic workflow:
 
@@ -20,7 +20,7 @@ FloodMetric tracks high-risk infrastructure sites across Western North Carolina 
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 * **Multi-Lens Layer Switching:** Seamlessly toggle between Historical Failure Patterns, Flood Exposure, and the Predictive Priority Index while keeping physical assets locked in place for direct site-by-site comparison.
 * **Interactive Storm & Asset Filtering:** Isolate vulnerabilities by specific historical weather events or infrastructure categories.
@@ -29,7 +29,7 @@ FloodMetric tracks high-risk infrastructure sites across Western North Carolina 
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 * **Frontend:** HTML5, CSS3, Vanilla JavaScript (ES6+)
 * **Mapping & Geospatial Rendering:** Leaflet.js with CARTO Basemaps
@@ -38,7 +38,7 @@ FloodMetric tracks high-risk infrastructure sites across Western North Carolina 
 
 ---
 
-## 🚀 Getting Started Locally
+## Getting Started Locally
 
 To run a local instance of FloodMetric on your machine:
 
@@ -62,7 +62,7 @@ To run a local instance of FloodMetric on your machine:
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
 ├── index.html          # Main dashboard layout and UI containers
@@ -74,7 +74,7 @@ To run a local instance of FloodMetric on your machine:
 
 ---
 
-## 🗺️ Future Roadmap
+## Future Roadmap
 
 * **Live Municipal 311 API Integration:** Connect directly to open municipal data portals (such as Town of Cary and City of Raleigh open data feeds) for real-time citizen hazard ingestion.
 * **Automated Watershed Polygon Overlays:** Integrate live NOAA precipitation gauges and USGS streamgage river-height thresholds.
