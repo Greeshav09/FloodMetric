@@ -1,0 +1,34 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": 1,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-78.6382, 35.7796]
+      },
+      "properties": {
+        "location_name": "Wake County Sample Point",
+        "category": "Flood Risk",
+        "weight_score": 4
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 2,
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-78.6410, 35.7820],
+          [-78.6350, 35.7820]
+        ]
+      },D
+      "properties": {
+        "location_name": "NCDOT Sample Road Segment",
+        "category": "Road Characteristic",
+        "weight_score": 2
+      }
+    }
+  ]
+}
