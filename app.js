@@ -18,7 +18,7 @@ const state = { view: "history", storm: "all", place: null };
 const map = L.map("map", { zoomControl: false }).setView([35.4, -79.6], 7);
 L.control.zoom({ position: "bottomleft" }).addTo(map);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-  maxZoom: 18, attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
+  maxZoom: 18, attribution: "?key=cb1_576y_1_5094530118c59c2dd4f27b54"
 }).addTo(map);
 const layer = L.layerGroup().addTo(map);
 
