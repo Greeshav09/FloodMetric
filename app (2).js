@@ -1,188 +1,135 @@
-/* FloodMetric prototype. All data below is invented sample data. */
+/* FloodMetric North Carolina prototype. Data comes from mock_data.js (a copy of mock_data.geojson). */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 
-// 1. Dataset: 14 pilot sites in the Wake County / Cary area (approximate coordinates)
-// failures = documented damage events, vulnerability = condition score 1-5,
-// exposure = number of NC-FLEX flood events (out of 78), reports = 311 reports
-const sites = [
-  { id: "S01", name: "River Landing Rd",       type: "Road",     lat: 35.7570, lon: -78.8400, failures: 7, vulnerability: 4, exposure: 41, reports: 18 },
-  { id: "S02", name: "Old Ferry Rd approach",  type: "Road",     lat: 35.7330, lon: -78.8720, failures: 6, vulnerability: 4, exposure: 38, reports: 15 },
-  { id: "S03", name: "Rocky Branch Rd",        type: "Culvert",  lat: 35.7840, lon: -78.7050, failures: 5, vulnerability: 4, exposure: 31, reports: 12 },
-  { id: "S04", name: "Swift Run Rd",           type: "Culvert",  lat: 35.7620, lon: -78.7790, failures: 4, vulnerability: 5, exposure: 27, reports: 9 },
-  { id: "S05", name: "Black Creek Rd",         type: "Road",     lat: 35.7050, lon: -78.7510, failures: 4, vulnerability: 5, exposure: 29, reports: 11 },
-  { id: "S06", name: "Tar Bend Rd drainage",   type: "Drainage", lat: 35.8100, lon: -78.6100, failures: 4, vulnerability: 3, exposure: 33, reports: 7 },
-  { id: "S07", name: "Marsh Rd bridge",        type: "Bridge",   lat: 35.6750, lon: -78.6500, failures: 5, vulnerability: 3, exposure: 35, reports: 6 },
-  { id: "S08", name: "Hollis Creek culvert",   type: "Culvert",  lat: 35.8300, lon: -78.7900, failures: 3, vulnerability: 4, exposure: 19, reports: 2 },
-  { id: "S09", name: "Mill Creek Rd bridge",   type: "Bridge",   lat: 35.7900, lon: -78.8300, failures: 3, vulnerability: 3, exposure: 22, reports: 4 },
-  { id: "S10", name: "Sandy Run drainage",     type: "Drainage", lat: 35.6500, lon: -78.8200, failures: 2, vulnerability: 3, exposure: 16, reports: 5 },
-  { id: "S11", name: "Maple Grove Rd bridge",  type: "Bridge",   lat: 35.8600, lon: -78.6800, failures: 3, vulnerability: 2, exposure: 24, reports: 2 },
-  { id: "S12", name: "Pine Hollow Rd culvert", type: "Culvert",  lat: 35.9000, lon: -78.7400, failures: 2, vulnerability: 2, exposure: 9,  reports: 3 },
-  { id: "S13", name: "Cedar Fork bridge",      type: "Bridge",   lat: 35.8000, lon: -78.9000, failures: 1, vulnerability: 2, exposure: 6,  reports: 1 },
-  { id: "S14", name: "Oak Ridge Rd culvert",   type: "Culvert",  lat: 35.9400, lon: -78.8600, failures: 1, vulnerability: 1, exposure: 4,  reports: 0 }
-];
+// ---------- data ----------
+const sites = window.MOCK_DATA.features.map((f, i) => ({
+  i, ...f.properties, lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0],
+  // The mock file has no vulnerability field, so a 1 to 5 estimate is derived from PPI for the popup.
+  vuln: Math.max(1, Math.min(5, Math.round(1 + (f.properties.ppi_score - 30) / 70 * 4)))
+}));
+const EVENT_COLOR = { "Hurricane Helene (2024)":"#2dd4a7", "Hurricane Florence (2018)":"#b6f23a", "Hurricane Floyd (1999)":"#f0b429", "Routine Extreme Rainfall":"#8c9a91" };
+const pinColor = p => p > 80 ? "#ef5b4c" : p >= 60 ? "#f08a3c" : "#f2d03b";
+const status = p => p > 80 ? "Inspection recommended" : p >= 60 ? "Review scheduled" : "Routine monitoring";
 
-// Simulated 311 reports
-const reports = [
-  { timestamp: "2026-11-09T07:42:00", type: "Street Flooding", address: "River Landing Rd near Kit Creek",   severity: "High" },
-  { timestamp: "2026-11-09T06:15:00", type: "High Water",      address: "Old Ferry Rd at creek crossing",    severity: "High" },
-  { timestamp: "2026-11-08T19:30:00", type: "Clogged Drain",   address: "Swift Run Rd, 1200 block",          severity: "Medium" },
-  { timestamp: "2026-11-08T16:05:00", type: "Street Flooding", address: "Rocky Branch Rd near the bend",     severity: "Medium" },
-  { timestamp: "2026-11-08T11:20:00", type: "Erosion",         address: "Black Creek Rd shoulder",           severity: "Medium" },
-  { timestamp: "2026-11-07T21:10:00", type: "High Water",      address: "Marsh Rd under the bridge",         severity: "Medium" },
-  { timestamp: "2026-11-07T14:45:00", type: "Clogged Drain",   address: "Tar Bend Rd, storm inlet",          severity: "Low" },
-  { timestamp: "2026-11-07T09:00:00", type: "Street Flooding", address: "Black Creek Rd low point",          severity: "High" },
-  { timestamp: "2026-11-06T18:25:00", type: "Clogged Drain",   address: "Sandy Run Dr, 300 block",           severity: "Low" },
-  { timestamp: "2026-11-06T13:40:00", type: "High Water",      address: "Mill Creek Rd bridge approach",     severity: "Low" },
-  { timestamp: "2026-11-05T08:55:00", type: "Erosion",         address: "Hollis Creek culvert outlet",       severity: "Low" },
-  { timestamp: "2026-11-04T17:30:00", type: "Clogged Drain",   address: "River Landing Rd storm drain",      severity: "Medium" }
-];
+const state = { view: "history", storm: "all", place: null };
 
-// 2. Scoring
-const sliders = [0, 1, 2, 3].map(i => document.getElementById("w" + i));
-const outputs = [0, 1, 2, 3].map(i => document.getElementById("o" + i));
-
-function getWeights() {
-  const raw = sliders.map(s => Number(s.value));
-  const total = raw.reduce((a, b) => a + b, 0);
-  // If every slider is zero, fall back to equal weights so the score stays defined.
-  return total === 0 ? [0.25, 0.25, 0.25, 0.25] : raw.map(v => v / total);
-}
-
-function calculateScores() {
-  const w = getWeights();
-  const maxFail = Math.max(1, ...sites.map(s => s.failures));
-  const maxExp  = Math.max(78, ...sites.map(s => s.exposure));
-  const maxRep  = Math.max(1, ...sites.map(s => s.reports));
-
-  sites.forEach(s => {
-    const parts = [
-      s.failures / maxFail,
-      (s.vulnerability - 1) / 4,
-      s.exposure / maxExp,
-      s.reports / maxRep
-    ];
-    s.ppi = Math.round(100 * parts.reduce((sum, p, i) => sum + p * w[i], 0));
-  });
-}
-
-function flag(ppi) {
-  if (ppi >= 70) return "red";
-  if (ppi >= 40) return "amber";
-  return "green";
-}
-
-function queueStatus(ppi) {
-  if (ppi >= 70) return "Priority field inspection";
-  if (ppi >= 40) return "Monitor and verify records";
-  return "Routine schedule";
-}
-
-// 3. Leaderboard
-const tbody = document.getElementById("leaderboard");
-
-function renderTable() {
-  const ranked = sites.slice().sort((a, b) => b.ppi - a.ppi);
-  tbody.innerHTML = "";
-  ranked.forEach((s, i) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML =
-      "<td>" + (i + 1) + "</td>" +
-      "<td>" + esc(s.name) + "</td>" +
-      "<td>" + esc(s.type) + "</td>" +
-      '<td class="ppi ' + flag(s.ppi) + '">' + s.ppi + "</td>" +
-      "<td>" + s.failures + "</td>" +
-      "<td>" + s.vulnerability + "</td>" +
-      "<td>" + s.exposure + "</td>" +
-      "<td>" + s.reports + "</td>";
-    tr.addEventListener("click", () => {
-      const m = markers[s.id];
-      map.setView(m.getLatLng(), 13);
-      m.openPopup();
-    });
-    tr.style.cursor = "pointer";
-    tbody.appendChild(tr);
-  });
-}
-
-// 4. Map (Leaflet + OpenStreetMap), centered on Cary / Wake County
-const map = L.map("map").setView([35.7915, -78.7811], 10);
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 18,
-  attribution: "&copy; OpenStreetMap contributors"
+// ---------- map ----------
+const map = L.map("map", { zoomControl: false }).setView([35.4, -79.6], 7);
+L.control.zoom({ position: "bottomleft" }).addTo(map);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+  maxZoom: 18, attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
 }).addTo(map);
+const layer = L.layerGroup().addTo(map);
 
-const colors = { red: "#c0392b", amber: "#d99a1c", green: "#2e8b57" };
-const markers = {};
+const visible = () => sites.filter(s => state.storm === "all" || s.historical_event === state.storm);
 
-sites.forEach(s => {
-  markers[s.id] = L.circleMarker([s.lat, s.lon], {
-    radius: 10, weight: 2, color: "#ffffff", fillOpacity: 0.9, fillColor: colors.green
-  }).addTo(map).bindPopup("");
-});
+function popup(s) {
+  return `<div class="pop"><h3>${esc(s.location)}</h3><p>${esc(s.infrastructure_type)} | ${esc(s.historical_event)}</p>
+  <dl><dt>PPI</dt><dd style="color:${pinColor(s.ppi_score)}">${s.ppi_score}</dd>
+  <dt>Structural vulnerability (est.)</dt><dd>${s.vuln} of 5</dd>
+  <dt>Flood zone alignment</dt><dd>${s.fema_zone_aligned ? "Within FEMA zone" : "Outside FEMA zone"}</dd>
+  <dt>Failures on record</dt><dd>${s.failure_count}</dd>
+  <dt>311 reports</dt><dd>${s.community_reports_count}</dd>
+  <dt>Inspection status</dt><dd>${status(s.ppi_score)}</dd></dl>
+  <div class="bar"><i style="width:${s.ppi_score}%;background:${pinColor(s.ppi_score)}"></i></div></div>`;
+}
+function bind(m, s) {
+  m.bindPopup(popup(s));
+  m.on("click", () => { state.place = s.location; renderLogs(); });
+  m.on("popupclose", () => { if (state.place === s.location) { state.place = null; renderLogs(); } });
+  return m.addTo(layer);
+}
 
-function updateMarkers() {
-  sites.forEach(s => {
-    const m = markers[s.id];
-    m.setStyle({ fillColor: colors[flag(s.ppi)] });
-    m.setPopupContent(
-      "<strong>" + esc(s.name) + "</strong><br>" +
-      "Asset class: " + esc(s.type) + "<br>" +
-      "PPI: <strong>" + s.ppi + "</strong><br>" +
-      "Inspection queue: " + queueStatus(s.ppi)
-    );
+// View 1: bubble size by failure_count, color by storm. Four or more failures get an outer ring.
+function drawHistory(list) {
+  list.forEach(s => {
+    if (s.failure_count >= 4) L.circleMarker([s.lat, s.lon], { radius: 9 + s.failure_count * 5 + 6, weight: 1.5, color: EVENT_COLOR[s.historical_event], fill: false, opacity: .6, interactive: false }).addTo(layer);
+    bind(L.circleMarker([s.lat, s.lon], { radius: 5 + s.failure_count * 5, weight: 1.5, color: "#fff", fillColor: EVENT_COLOR[s.historical_event], fillOpacity: .6 }), s)
+      .bindTooltip(esc(s.location) + ": " + s.failure_count + " failures");
+  });
+}
+// View 2: nested translucent circles that stand in for NC-FLEX flood extents. Illustrative shapes, not real extents.
+function drawExposure(list) {
+  list.forEach(s => {
+    const outer = 9000 + s.ppi_score * 350, aligned = s.fema_zone_aligned;
+    L.circle([s.lat, s.lon], { radius: outer, weight: 0, fillColor: "#6fb1ff", fillOpacity: aligned ? .2 : .12, interactive: false }).addTo(layer);
+    L.circle([s.lat, s.lon], { radius: outer * .55, weight: 1, color: "#4a8cff", opacity: .5, fillColor: aligned ? "#2f5fd0" : "#4a8cff", fillOpacity: aligned ? .45 : .22, interactive: false }).addTo(layer);
+    bind(L.circleMarker([s.lat, s.lon], { radius: 4, weight: 1, color: "#fff", fillColor: "#fff", fillOpacity: 1 }), s);
+  });
+}
+// View 3: teardrop pins colored by PPI band.
+function drawPPI(list) {
+  list.forEach(s => {
+    const icon = L.divIcon({ className: "", html: `<span class="pin" style="--c:${pinColor(s.ppi_score)}"></span>`, iconSize: [22, 22], iconAnchor: [11, 24], popupAnchor: [0, -22] });
+    bind(L.marker([s.lat, s.lon], { icon }), s);
   });
 }
 
-// 5. Slider wiring: recalculate everything on every drag
-function update() {
-  sliders.forEach((s, i) => { outputs[i].textContent = s.value; });
-  calculateScores();
-  renderTable();
-  updateMarkers();
-}
-sliders.forEach(s => s.addEventListener("input", update));
+const LEGENDS = {
+  history: () => `<b>Failure count</b>${[1, 3, 5].map(n => `<div><i style="width:${5 + n * 5}px;height:${5 + n * 5}px;background:#8c9a9199"></i>${n} on record</div>`).join("")}
+    <b style="margin-top:8px">Storm</b>${Object.entries(EVENT_COLOR).map(([k, c]) => `<div><i style="width:10px;height:10px;background:${c}"></i>${esc(k)}</div>`).join("")}<small>Ring marks 4 or more failures.</small>`,
+  exposure: () => `<b>Flood impacts</b><div><i style="width:12px;height:12px;background:#2f5fd0"></i>Core, FEMA aligned</div><div><i style="width:12px;height:12px;background:#4a8cff88"></i>Core, outside FEMA zone</div><div><i style="width:12px;height:12px;background:#6fb1ff44"></i>Wider extent</div><small>Illustrative shapes that mimic NC-FLEX extents.</small>`,
+  ppi: () => `<b>PPI</b><div><i style="width:12px;height:12px;background:#ef5b4c"></i>Above 80, inspect</div><div><i style="width:12px;height:12px;background:#f08a3c"></i>60 to 80, review</div><div><i style="width:12px;height:12px;background:#f2d03b"></i>Below 60, monitor</div>`
+};
 
-// 6. 311 sidebar
-const filter = document.getElementById("incidentFilter");
-const list = document.getElementById("reportList");
-const count = document.getElementById("reportCount");
-
-function initFilter() {
-  const types = Array.from(new Set(reports.map(r => r.type))).sort();
-  filter.innerHTML = "";
-  ["All incident types"].concat(types).forEach((t, i) => {
-    const opt = document.createElement("option");
-    opt.value = i === 0 ? "all" : t;
-    opt.textContent = t;
-    filter.appendChild(opt);
-  });
+function renderMap() {
+  layer.clearLayers();
+  const list = visible();
+  ({ history: drawHistory, exposure: drawExposure, ppi: drawPPI })[state.view](list);
+  $("legend").innerHTML = LEGENDS[state.view]();
 }
 
-function renderReports() {
-  const choice = filter.value;
-  const shown = reports
-    .filter(r => choice === "all" || r.type === choice)
-    .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
-
-  list.innerHTML = "";
-  shown.forEach(r => {
-    const card = document.createElement("div");
-    card.className = "report sev-" + r.severity.toLowerCase();
-    const when = new Date(r.timestamp).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-    card.innerHTML =
-      '<div class="top"><span>' + esc(r.type) + "</span><span>" + esc(r.severity) + "</span></div>" +
-      "<div>" + esc(r.address) + "</div>" +
-      '<div class="meta">' + when + "</div>";
-    list.appendChild(card);
-  });
-  count.textContent = shown.length + " of " + reports.length + " reports shown. Reports are unverified and do not establish structural damage.";
-}
-filter.addEventListener("change", renderReports);
-
-function esc(str) {
-  return String(str).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+// ---------- left sidebar ----------
+function renderMetrics() {
+  const l = visible(), n = l.length || 1;
+  const avg = Math.round(l.reduce((a, s) => a + s.ppi_score, 0) / n);
+  const fema = Math.round(100 * l.filter(s => s.fema_zone_aligned).length / n);
+  $("kpis").innerHTML = [["Sites shown", l.length], ["Average PPI", avg], ["Total failures", l.reduce((a, s) => a + s.failure_count, 0)], ["FEMA aligned", fema + "%"]]
+    .map(([k, v]) => `<div class="kpi"><span>${k}</span><strong>${v}</strong></div>`).join("");
+  $("top").innerHTML = l.slice().sort((a, b) => b.ppi_score - a.ppi_score).slice(0, 5)
+    .map(s => `<li data-i="${s.i}"><span>${esc(s.location)}</span><b style="background:${pinColor(s.ppi_score)}">${s.ppi_score}</b></li>`).join("");
+  const types = ["Bridge", "Culvert", "Pumping Station", "Wastewater Plant"];
+  const max = Math.max(1, ...types.map(t => l.filter(s => s.infrastructure_type === t).length));
+  $("types").innerHTML = types.map(t => { const c = l.filter(s => s.infrastructure_type === t).length;
+    return `<div class="row"><span>${t}</span><span><i style="width:${100 * c / max}%"></i></span><b>${c}</b></div>`; }).join("");
 }
 
-// Start
-initFilter();
-renderReports();
-update();
+// ---------- right sidebar: simulated 311 logs for the active storm or selected place ----------
+const TEMPLATES = {
+  "Bridge": ["Debris against bridge piers", "Road washout at the approach", "Standing water near the bridge deck"],
+  "Culvert": ["Culvert inlet blocked", "Water over the roadway", "Erosion at the culvert outlet"],
+  "Pumping Station": ["Pump station alarm reported", "Basin overflow near the station", "Standing water around the station"],
+  "Wastewater Plant": ["Sewage odor near the plant", "Overflow at a nearby manhole", "Standing water on the plant access road"]
+};
+function logsFor(s) {
+  const n = Math.min(3, Math.ceil(s.community_reports_count / 8)), sev = s.ppi_score > 80 ? "High" : s.ppi_score >= 60 ? "Medium" : "Low";
+  return Array.from({ length: n }, (_, k) => ({ s, sev, text: TEMPLATES[s.infrastructure_type][k], hours: (s.i * 7 + k * 11) % 70 + 1 }));
+}
+function renderLogs() {
+  const base = visible(), list = state.place ? base.filter(s => s.location === state.place) : base;
+  const logs = list.flatMap(logsFor).sort((a, b) => a.hours - b.hours);
+  $("scope").innerHTML = state.place ? `Showing ${esc(state.place)} <button id="clr">Show all</button>` : "Showing " + (state.storm === "all" ? "all storms" : esc(state.storm));
+  const clr = $("clr"); if (clr) clr.onclick = () => { state.place = null; map.closePopup(); renderLogs(); };
+  $("logs").innerHTML = logs.length ? logs.map(l => `<div class="log ${l.sev}"><div class="t"><span>${esc(l.text)}</span><span>${l.sev}</span></div><div>${esc(l.s.location)}</div><div class="m">${l.hours} hours ago</div></div>`).join("")
+    : '<p class="muted">No reports for this selection.</p>';
+}
+
+// ---------- controls ----------
+$("storm").innerHTML = '<option value="all">All events</option>' + [...new Set(sites.map(s => s.historical_event))].map(e => `<option>${esc(e)}</option>`).join("");
+$("storm").onchange = e => {
+  state.storm = e.target.value; state.place = null; renderAll();
+  const l = visible(); if (l.length) map.fitBounds(l.map(s => [s.lat, s.lon]), { padding: [60, 60], maxZoom: 9 });
+};
+$("layers").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.view = b.dataset.view; state.place = null;
+  document.querySelectorAll("#layers button").forEach(x => x.classList.toggle("on", x === b));
+  renderMap(); renderLogs();
+};
+$("top").onclick = e => {
+  const li = e.target.closest("li"); if (!li) return;
+  const s = sites[li.dataset.i]; map.setView([s.lat, s.lon], 10);
+};
+function renderAll() { renderMap(); renderMetrics(); renderLogs(); }
+renderAll();
