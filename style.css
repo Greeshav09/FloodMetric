@@ -50,3 +50,4 @@ background:rgba(10,16,13,.88);border:1px solid var(--bd);border-radius:12px;padd
 .log .t{display:flex;justify-content:space-between;font-weight:600}.log .m{color:var(--mu);font-size:12px}
 @media(max-width:1100px){.grid{grid-template-columns:1fr 1fr}.map-card{grid-column:1/-1;order:-1}.side{height:auto;max-height:520px}}
 @media(max-width:720px){.grid{grid-template-columns:1fr;padding:0 12px 20px}#map{height:480px;min-height:0}.legend{display:none}}
+

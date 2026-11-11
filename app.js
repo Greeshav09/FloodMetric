@@ -133,3 +133,4 @@ $("top").onclick = e => {
 };
 function renderAll() { renderMap(); renderMetrics(); renderLogs(); }
 renderAll();
+
