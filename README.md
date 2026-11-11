@@ -2,6 +2,8 @@
 **AI-Assisted Infrastructure Vulnerability & Pattern Recognition Dashboard for North Carolina**
 
 FloodMetric is an interactive geospatial decision-support platform designed to help municipal planners, emergency managers, and civil engineers identify recurring infrastructure vulnerabilities across North Carolina. By locking onto critical physical assets—such as bridges, culverts, pumping stations, and wastewater facilities—the dashboard evaluates each site through three distinct analytical lenses.
+
+
 Link: https://floodmetricaicc.vercel.app/
 ---
 
